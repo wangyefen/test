@@ -1,0 +1,368 @@
+<template>
+  <div>
+    <el-dialog
+      title="任务监听器"
+      :visible.sync="dialogTaskListener"
+      width="70%"
+      @close="dialogCancel"
+    >
+      <div>
+        <el-row>
+          <el-col :span="12">
+            <div class="app-container">
+              <el-table
+                ref="tableData"
+                stripe
+                :data="tableData"
+                border
+                fit
+                highlight-current-row
+                style="width: 100%;"
+                @current-change="selectRow"
+                @selection-change="selectlistRow"
+              >
+                <el-table-column type="selection" width="40px" />
+                <el-table-column label="事件" prop="event" />
+                <el-table-column label="类" prop="class" />
+                <el-table-column label="表达式" prop="expression" />
+                <el-table-column label="委托表达式" prop="delegateExpression" />
+              </el-table>
+            </div>
+            <div class="tool-container" style="text-align:right">
+              <el-button type="primary" icon="el-icon-plus" @click="eventPlus()" />
+              <el-button type="primary" icon="el-icon-minus" @click="eventMinus()" />
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="app-container">
+              <el-form label-width="90px">
+                <el-form-item label="事件">
+                  <el-select v-model="form.event" placeholder="请选择事件" @change="handleSelectionChange()">
+                    <el-option
+                      v-for="item in form.options"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="类">
+                  <el-input v-model="form.class" type="input" placeholder="输入一个类名" />
+                </el-form-item>
+                <el-form-item label="表达式">
+                  <el-input v-model="form.expression" type="input" placeholder="输入一个表达式" />
+                </el-form-item>
+                <el-form-item label="委托表达式">
+                  <el-input v-model="form.delegateExpression" type="input" placeholder="输入一个委托表达式" />
+                </el-form-item>
+                <el-form-item style="text-align:right">
+                  <el-button type="primary" @click="addToTable">更新</el-button>
+                  <el-button type="primary" @click="formInit">清空</el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <div class="app-container">
+              <el-table
+                ref="tableDataTwo"
+                stripe
+                :data="tableDataTwo"
+                border
+                fit
+                highlight-current-row
+                style="width: 100%;"
+                @current-change="selectRowTwo"
+                @selection-change="selectlistRowTwo"
+              >
+                <el-table-column type="selection" width="40" />
+                <el-table-column label="Name" prop="name" />
+                <el-table-column label="字符串值" prop="stringValue" />
+                <el-table-column label="表达式" prop="expression" />
+                <el-table-column label="字符串" prop="string" />
+              </el-table>
+            </div>
+            <div class="tool-container" style="text-align:right">
+              <el-button type="primary" icon="el-icon-plus" @click="eventPlusTwo()" />
+              <el-button type="primary" icon="el-icon-minus" @click="eventMinusTwo()" />
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="app-container">
+              <el-form label-width="90px">
+                <el-form-item label="名称">
+                  <el-input v-model="formTwo.name" type="input" placeholder="输入一个名称" />
+                </el-form-item>
+                <el-form-item label="字符串值">
+                  <el-input v-model="formTwo.stringValue" type="input" placeholder="输入一个字符串值" />
+                </el-form-item>
+                <el-form-item label="表达式">
+                  <el-input v-model="formTwo.expression" type="input" placeholder="输入一个表达式" />
+                </el-form-item>
+                <el-form-item label="字符串">
+                  <el-input v-model="formTwo.string" type="input" placeholder="输入一个字符串" />
+                </el-form-item>
+                <el-form-item style="text-align:right">
+                  <el-button type="primary" @click="addToTableTwo">更新</el-button>
+                  <el-button type="primary" @click="formInitTwo">清空</el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
+      <div slot="footer" class="dialog-footer" style="text-align:right">
+        <el-button @click="dialogCancel()">{{ '取消' }}</el-button>
+        <el-button type="primary" @click="handleCommit()">{{ '保存' }}</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script>
+
+import { Base64 } from 'js-base64'
+
+export default {
+  name: 'TaskListener',
+  components: {},
+  props: {
+    formKey: {
+      type: String,
+      default: () => ''
+    }
+  },
+  data() {
+    return {
+      flag1: false, // 表1选中状态
+      flag2: false,
+      form: {
+        class: '',
+        expression: '',
+        delegateExpression: '',
+        event: '',
+        options: [{
+          label: 'start',
+          value: 'start'
+        }, {
+          label: 'take',
+          value: 'take'
+        }, {
+          label: 'end',
+          value: 'end'
+        }],
+        value: ''
+      },
+      formTwo: {
+        name: '',
+        stringValue: '',
+        expression: '',
+        string: ''
+      },
+      tableData: [],
+      tableDataTwo: [],
+      currentRow: null,
+      selectedlistRow: [],
+      selectedRow: {},
+      selectedlistRowTwo: [],
+      selectedRowTwo: {},
+      rowNum: 1
+    }
+  },
+  created() {
+    this.handleListener()
+  },
+  mounted() {
+    // this.sendIdd()
+  },
+  methods: {
+    handleListener() {
+      this.dialogTaskListener = true
+    },
+
+    getList() {
+
+    },
+
+    // 撤销弹窗
+    dialogCancel() {
+      this.dialogTaskListener = false,
+      this.$parent.handleCloseTaskListener()
+    },
+
+    // 获取表格单选行的数据
+    selectRow(val) {
+      this.selectedRow = val
+      if (this.selectedRow != undefined && this.selectedRow != null) {
+        this.form.event = this.selectedRow.event
+        this.form.class = this.selectedRow.class
+        this.form.expression = this.selectedRow.expression
+        this.form.delegateExpression = this.selectedRow.delegateExpression
+        this.flag1 = true
+      }
+      this.getTableDataTwo()
+    },
+
+    // 获取表格多选行的数据
+    selectlistRow(val) {
+      this.selectedlistRow = val
+    },
+
+    // 获取表格2单选行的数据
+    selectRowTwo(val) {
+      this.selectedRowTwo = val
+      if (this.selectedRowTwo != undefined && this.selectedRowTwo != null) {
+        this.formTwo.name = this.selectedRowTwo.name
+        this.formTwo.stringValue = this.selectedRowTwo.stringValue
+        this.formTwo.expression = this.selectedRowTwo.expression
+        this.formTwo.string = this.selectedRowTwo.string
+        this.flag2 = true
+      }
+    },
+
+    // 获取表格2多选行的数据
+    selectlistRowTwo(val) {
+      this.selectedlistRowTwo = val
+    },
+
+    // 增加表1行
+    eventPlus() {
+      const list = {
+        rowNum: this.rowNum,
+        event: 'start',
+        class: '',
+        expression: '',
+        delegateExpression: ''
+      }
+      this.rowNum++
+      this.tableData.unshift(list)
+      this.form.event = list.event
+    },
+
+    // 增加表2行
+    eventPlusTwo() {
+      if (this.flag1 === true) {
+        const listTwo = {
+          rowNum: this.rowNum,
+          name: 'fileName',
+          stringValue: '',
+          expression: '',
+          string: ''
+        }
+        this.rowNum++
+        this.tableDataTwo.unshift(listTwo)
+      } else {
+        return
+      }
+    },
+
+    // 删除表1选中行
+    eventMinus() {
+      for (let i = 0; i < this.selectedlistRow.length; i++) {
+        const val = this.selectedlistRow
+        // 获取选中行的索引的方法
+        // 遍历表格中tableData数据和选中的val数据，比较它们的rowNum,相等则输出选中行的索引
+        // rowNum的作用主要是为了让每一行有一个唯一的数据，方便比较，可以根据个人的开发需求从后台传入特定的数据
+        val.forEach((val, index) => {
+          this.tableData.forEach((v, i) => {
+            if (val.rowNum === v.rowNum) {
+              // i 为选中的索引
+              this.tableData.splice(i, 1)
+              this.formInit()
+              if (this.selectedRow.rowNum === val.rowNum) {
+                this.flag = false
+              }
+            }
+          })
+        })
+      }
+      // 删除完数据之后清除勾选框
+      this.$refs.tableData.clearSelection()
+    },
+
+    // 删除表2选中行
+    eventMinusTwo() {
+      for (let i = 0; i < this.selectedlistRowTwo.length; i++) {
+        const val = this.selectedlistRowTwo
+        // 获取选中行的索引的方法
+        // 遍历表格中tableData数据和选中的val数据，比较它们的rowNum,相等则输出选中行的索引
+        // rowNum的作用主要是为了让每一行有一个唯一的数据，方便比较，可以根据个人的开发需求从后台传入特定的数据
+        val.forEach((val, index) => {
+          this.tableDataTwo.forEach((v, i) => {
+            if (val.rowNum === v.rowNum) {
+              // i 为选中的索引
+              this.tableDataTwo.splice(i, 1)
+              // 清空表单
+              this.formInitTwo()
+              if (this.selectedRowTwo.rowNum === val.rowNum) {
+                this.flag2 = false
+              }
+            }
+          })
+        })
+      }
+      // 删除完数据之后清除勾选框
+      this.$refs.tableData.clearSelection()
+    },
+
+    // 下拉框事件
+    handleSelectionChange() {
+      if (this.flag1 === true) {
+        this.selectedRow.event = this.form.event
+      }
+    },
+
+    // 表1输入
+    addToTable() {
+      console.log(this.flag1)
+      if (this.flag1 === true) {
+        this.selectedRow.class = this.form.class
+        this.selectedRow.expression = this.form.expression
+        this.selectedRow.delegateExpression = this.form.delegateExpression
+      }
+    },
+
+    // 表2输入
+    addToTableTwo() {
+      if (this.flag2 === true) {
+        this.selectedRowTwo.name = this.formTwo.name
+        this.selectedRowTwo.stringValue = this.formTwo.stringValue
+        this.selectedRowTwo.expression = this.formTwo.expression
+        this.selectedRowTwo.string = this.formTwo.string
+      }
+    },
+
+    // 初始化表单
+    formInit() {
+      this.form.class = null
+      this.form.expression = null
+      this.form.delegateExpression = null
+    },
+
+    // 初始化表单2
+    formInitTwo() {
+      this.formTwo.name = null
+      this.formTwo.stringValue = null
+      this.formTwo.expression = null
+      this.formTwo.string = null
+    },
+
+    test() {
+      // this.form.class = this.selectedRow.class
+    },
+
+    // 保存提交
+    handleCommit() {
+      // workService.commitExecutiveMonitor(tableData)
+
+      this.dialogCancel()
+    },
+
+    // 获取表2数据
+    getTableDataTwo() {
+
+    }
+  }
+}
+</script>
